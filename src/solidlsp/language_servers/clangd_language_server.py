@@ -133,8 +133,8 @@ class ClangdLanguageServer(SolidLanguageServer):
             """
             import shutil
 
-            clangd_version = self._custom_settings.get("clangd_version", "19.1.2")
-            default_version = clangd_version == "19.1.2"
+            clangd_version = self._custom_settings.get("clangd_version", "22.1.0")
+            default_version = clangd_version == "22.1.0"
 
             deps = RuntimeDependencyCollection(
                 [
