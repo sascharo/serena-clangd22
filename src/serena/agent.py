@@ -2,6 +2,7 @@
 The Serena Model Context Protocol (MCP) Server
 """
 
+import json
 import multiprocessing
 import os
 import platform
@@ -35,7 +36,16 @@ from serena.ls_manager import LanguageServerManager
 from serena.project import MemoriesManager, Project
 from serena.prompt_factory import SerenaPromptFactory
 from serena.task_executor import TaskExecutor
-from serena.tools import ActivateProjectTool, GetCurrentConfigTool, OpenDashboardTool, ReplaceContentTool, Tool, ToolMarker, ToolRegistry
+from serena.tools import (
+    ActivateProjectTool,
+    GetCurrentConfigTool,
+    OpenDashboardTool,
+    ReadMemoryTool,
+    ReplaceContentTool,
+    Tool,
+    ToolMarker,
+    ToolRegistry,
+)
 from serena.util.gui import system_has_usable_display
 from serena.util.inspection import iter_subclasses
 from serena.util.logging import MemoryLogHandler
@@ -80,6 +90,9 @@ class AvailableTools:
 
     def contains_tool_name(self, tool_name: str) -> bool:
         return tool_name in self._tool_name_set
+
+    def contains_tool_class(self, tool_class: type[Tool]) -> bool:
+        return self.contains_tool_name(tool_class.get_name_from_cls())
 
 
 class ToolSet:
@@ -226,6 +239,13 @@ class ActiveModes:
             self._active_modes.append(mode)
         return self._active_modes
 
+    # TODO: apply caching like in get_modes
+    def get_default_modes(self) -> Sequence[SerenaAgentMode]:
+        return [SerenaAgentMode.load(mode_name) for mode_name in self._default_modes or []]
+
+    def get_base_modes(self) -> Sequence[SerenaAgentMode]:
+        return [SerenaAgentMode.load(mode_name) for mode_name in self._base_modes or []]
+
 
 class SerenaAgent:
     def __init__(
@@ -249,6 +269,8 @@ class SerenaAgent:
         :param memory_log_handler: a MemoryLogHandler instance from which to read log messages; if None, a new one will be created
             if necessary.
         """
+        self.version = serena_version()
+
         # obtain serena configuration using the decoupled factory function
         self.serena_config = serena_config or SerenaConfig.from_config_file()
 
@@ -314,7 +336,7 @@ class SerenaAgent:
 
         # log fundamental information
         log.info(
-            f"Starting Serena server (version={serena_version()}, process id={os.getpid()}, parent process id={os.getppid()}; "
+            f"Starting Serena server (version={self.version}, process id={os.getpid()}, parent process id={os.getppid()}; "
             f"language backend={self.serena_config.language_backend.name}); Python version={platform.python_version()}, platform={platform.platform()}"
         )
         log.info("Configuration file: %s", self.serena_config.config_file_path)
@@ -358,7 +380,7 @@ class SerenaAgent:
             self.serena_config, self._language_backend, self._context, self._active_modes, self._active_project
         )
         self._exposed_tools = self._base_toolset.to_available_tools(self._all_tools)
-        log.info(f"Number of exposed tools: {len(self._exposed_tools)}")
+        log.info(f"Number of exposed tools: {len(self._exposed_tools)}. Exposed tools: {self._exposed_tools.tool_names}")
 
         # update the active tools (considering the active project, if any)
         self._active_tools: AvailableTools
@@ -414,11 +436,20 @@ class SerenaAgent:
 
         # consider modes
         # Since modes can be dynamically turned on and off, we don't include their definitions directly,
-        # but for the initially active modes, we make sure that the tools they enable are included.
-        for mode in modes.get_modes():
+        # For the initially active dynamic modes, we make sure that the tools they enable are included.
+        for mode in modes.get_default_modes():
             tool_inclusion_definitions.append(
                 NamedToolInclusionDefinition(
-                    name=f"InitialModeInclusions[{mode.name}]", included_optional_tools=mode.included_optional_tools
+                    name=f"InitialDynamicModeInclusions[{mode.name}]", included_optional_tools=mode.included_optional_tools
+                )
+            )
+        # For the base modes, we also apply the tool exclusions, since they apply throughout the entire session
+        for base_mode in modes.get_base_modes():
+            tool_inclusion_definitions.append(
+                NamedToolInclusionDefinition(
+                    name=f"BaseMode[{base_mode.name}]",
+                    included_optional_tools=base_mode.included_optional_tools,
+                    excluded_tools=base_mode.excluded_tools,
                 )
             )
 
@@ -579,7 +610,7 @@ class SerenaAgent:
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-            start_new_session=True,  # Detach from parent process
+            start_new_session=False,
         )
 
     def get_exposed_tool_instances(self) -> list["Tool"]:
@@ -648,10 +679,38 @@ class SerenaAgent:
 
         # If a project is active at startup, append its activation message
         if self._active_project is not None:
-            system_prompt += "\n\n" + self._active_project.get_activation_message()
+            system_prompt += "\n\n" + self.get_project_activation_message()
 
         log.info("System prompt:\n%s", system_prompt)
         return system_prompt
+
+    def get_project_activation_message(self) -> str:
+        """
+        :return: a message providing information about the project upon activation (e.g. programming language, memories, initial prompt)
+        :raise: AssertionError if no project is active
+        """
+        proj = self._active_project
+        assert proj is not None, "A project must be active before calling this."
+        if proj.is_newly_created:
+            msg = f"Created and activated a new project with name '{proj.project_name}' at {proj.project_root}. "
+        else:
+            msg = f"The project with name '{proj.project_name}' at {proj.project_root} is activated."
+        if self._language_backend == LanguageBackend.LSP:
+            languages_str = ", ".join([lang.value for lang in proj.project_config.languages])
+            msg += f"\nProgramming languages: {languages_str}."
+        msg += "File encoding: {proj.project_config.encoding}."
+
+        include_memories = self._active_tools.contains_tool_class(ReadMemoryTool)
+        if include_memories:
+            project_memories = proj.memories_manager.list_project_memories()
+            if project_memories:
+                msg += (
+                    f"\n{json.dumps(project_memories.to_dict())}\n"
+                    + "Use the `read_memory` tool to read these memories later if they are relevant to the task."
+                )
+        if proj.project_config.initial_prompt:
+            msg += f"\nAdditional project-specific instructions:\n {proj.project_config.initial_prompt}"
+        return msg
 
     def _update_active_modes(self) -> None:
         """
@@ -726,10 +785,17 @@ class SerenaAgent:
         """
         return self._language_backend == LanguageBackend.LSP
 
-    def _activate_project(self, project: Project, update_active_modes: bool = True, update_active_tools: bool = True) -> None:
+    def _activate_project(self, project: Project, update_active_modes: bool = True, update_active_tools: bool = True) -> bool:
+        """
+        :return: True if the project was newly activated, False if it was already active
+        """
+        # check if the project is already active
+        if self._active_project is not None and self._active_project.project_root == project.project_root:
+            return False
+
         log.info(f"Activating {project.project_name} at {project.project_root}")
 
-        # Check if the project requires a different language backend than the one initialized at startup
+        # check if the project requires a different language backend than the one initialized at startup
         project_backend = project.project_config.language_backend
         if project_backend is not None and project_backend != self._language_backend:
             raise ValueError(
@@ -765,14 +831,18 @@ class SerenaAgent:
         if self._project_activation_callback is not None:
             self._project_activation_callback()
 
+        return True
+
     def activate_project_from_path_or_name(
         self, project_root_or_name: str, update_active_modes: bool = True, update_active_tools: bool = True
-    ) -> Project:
+    ) -> bool:
         """
         Activate a project from a path or a name.
         If the project was already registered, it will just be activated.
         If the argument is a path at which no Serena project previously existed, the project will be created beforehand.
         Raises ProjectNotFoundError if the project could neither be found nor created.
+
+        :return: True if the project was newly activated, False if it was already active
         """
         project_instance: Project | None = self.serena_config.get_project(project_root_or_name)
         if project_instance is not None:
@@ -787,9 +857,7 @@ class SerenaAgent:
                 f"Existing project names: {self.serena_config.project_names}"
             )
 
-        self._activate_project(project_instance, update_active_modes=update_active_modes, update_active_tools=update_active_tools)
-
-        return project_instance
+        return self._activate_project(project_instance, update_active_modes=update_active_modes, update_active_tools=update_active_tools)
 
     def get_active_tool_names(self) -> list[str]:
         """
@@ -809,7 +877,7 @@ class SerenaAgent:
         :return: a string overview of the current configuration, including the active and available configuration options
         """
         result_str = "Current configuration:\n"
-        result_str += f"Serena version: {serena_version()}\n"
+        result_str += f"Serena version: {self.version}\n"
         result_str += f"Loglevel: {self.serena_config.log_level}, trace_lsp_communication={self.serena_config.trace_lsp_communication}\n"
         if self._active_project is not None:
             result_str += f"Active project: {self._active_project.project_name}\n"
