@@ -15,6 +15,7 @@ There are two alternative technologies powering these capabilities:
 
 See the [Features](025_features) section for a detailed comparison of the capabilities provided by the JetBrains Plugin vs. language servers.
 
+(language-servers)=
 ## Language Servers
 
 Serena incorporates a powerful abstraction layer for the integration of language servers 
@@ -63,7 +64,10 @@ Some languages require additional installations or setup steps, as noted.
   (requires local groovy-language-server.jar setup via `GROOVY_LS_JAR_PATH` or configuration)
 * **Haskell**  
   (automatically locates HLS via ghcup, stack, or system PATH; supports Stack and Cabal projects)
-* **HLSL / GLSL / WGSL**  
+* **Haxe**
+  (requires Haxe compiler 3.4.0+ and Node.js; uses the [vshaxe language server](https://github.com/vshaxe/haxe-language-server);
+  automatically downloaded from Open VSX, or discovered from the vshaxe VSCode extension)
+* **HLSL / GLSL / WGSL**
   (uses [shader-language-server](https://github.com/antaalt/shader-sense) (language `hlsl`); automatically downloaded;
   on macOS, requires Rust toolchain for building from source;
   note: reference search is not supported by this language server)
@@ -80,6 +84,9 @@ Some languages require additional installations or setup steps, as noted.
 * **Luau**
 * **Markdown**  
   (must explicitly enable language `markdown`, primarily useful for documentation-heavy projects)
+* **mSL** (mIRC Scripting Language)  
+  (auto-installed; no external dependencies required — uses a custom pygls-based LSP server shipped with Serena;
+  supports document symbols, workspace symbols, references, and go-to-definition for aliases, events, menus, dialogs, and CTCP handlers in `.mrc` files)
 * **Nix**  
   (requires nixd installation)
 * **OCaml**

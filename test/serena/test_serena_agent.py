@@ -45,7 +45,9 @@ def serena_config():
         Language.FSHARP,
         Language.POWERSHELL,
         Language.CPP_CCLS,
+        Language.HAXE,
         Language.LEAN4,
+        Language.MSL,
     ]:
         repo_path = get_repo_path(language)
         if repo_path.exists():
@@ -196,7 +198,9 @@ class TestSerenaAgent:
             pytest.param(Language.CSHARP, "Calculator", "Class", "Program.cs", marks=pytest.mark.csharp),
             pytest.param(Language.POWERSHELL, "Greet-User", "Function", "main.ps1", marks=pytest.mark.powershell),
             pytest.param(Language.CPP_CCLS, "add", "Function", "b.cpp", marks=pytest.mark.cpp),
+            pytest.param(Language.HAXE, "Main", "Class", "Main.hx", marks=pytest.mark.haxe),
             pytest.param(Language.LEAN4, "add", "Method", "Helper.lean", marks=pytest.mark.lean4),
+            pytest.param(Language.MSL, "greet", "Function", "main.mrc", marks=pytest.mark.msl),
         ],
         indirect=["serena_agent"],
     )
@@ -297,7 +301,15 @@ class TestSerenaAgent:
             pytest.param(Language.CSHARP, "Calculator", "Program.cs", "Program.cs", marks=pytest.mark.csharp),
             pytest.param(Language.POWERSHELL, "Greet-User", "main.ps1", "main.ps1", marks=pytest.mark.powershell),
             pytest.param(Language.CPP_CCLS, "add", "b.cpp", "a.cpp", marks=pytest.mark.cpp),
+            pytest.param(
+                Language.HAXE,
+                "addNumbers",
+                os.path.join("src", "utils", "Helper.hx"),
+                os.path.join("src", "Main.hx"),
+                marks=pytest.mark.haxe,
+            ),
             pytest.param(Language.LEAN4, "add", "Helper.lean", "Main.lean", marks=pytest.mark.lean4),
+            pytest.param(Language.MSL, "format.coins", "utils.mrc", "main.mrc", marks=pytest.mark.msl),
         ],
         indirect=["serena_agent"],
     )

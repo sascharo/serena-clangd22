@@ -137,6 +137,11 @@ class Tool(Component):
     _last_tool_call_client_str: str | None = None
     """We can only get the client info from within a tool call. Each tool call will update this variable."""
 
+    @staticmethod
+    def _sanitize_input_param(raw_param: str) -> str:
+        # some clients replace < and > with their escaped html versions, we need to counteract this
+        return raw_param.replace("&lt;", "<").replace("&gt;", ">")
+
     @classmethod
     def set_last_tool_call_client_str(cls, client_str: str | None) -> None:
         cls._last_tool_call_client_str = client_str
@@ -429,6 +434,14 @@ tool_packages = ["serena.tools"]
 
 @singleton
 class ToolRegistry:
+    _deleted_tools: list[str] = [
+        "think_about_collected_information",
+        "prepare_for_new_conversation",
+        "summarize_changes",
+        "think_about_whether_you_are_done",
+        "switch_modes",
+    ]
+
     def __init__(self) -> None:
         self._tool_dict: dict[str, RegisteredTool] = {}
         inclusion_predicate = lambda c: "apply" in c.__dict__  # include only concrete tool classes that implement apply
@@ -518,3 +531,15 @@ class ToolRegistry:
 
     def is_valid_tool_name(self, tool_name: str) -> bool:
         return tool_name in self._tool_dict
+
+    def check_valid_tool_name(self, tool_name: str, caller_context_for_logging: str = "") -> bool:
+        """Returns True if the tool name is valid, False if it is deleted, and raises ValueError if it is invalid."""
+        if self.is_deleted_tool_name(tool_name):
+            log.warning(f"Tool name is deleted: {tool_name}{caller_context_for_logging}")
+            return False
+        if not self.is_valid_tool_name(tool_name):
+            raise ValueError(f"Invalid tool name: {tool_name}{caller_context_for_logging}")
+        return True
+
+    def is_deleted_tool_name(self, tool_name: str) -> bool:
+        return tool_name in self._deleted_tools

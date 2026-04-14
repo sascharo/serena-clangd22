@@ -3,20 +3,52 @@
 Status of the `main` branch. Changes prior to the next official version change will appear here.
 
 * General:
-  - Added `serena init` command
+  - Support environment variable `SERENA_USAGE_REPORTING` (set to `false` to disable usage reporting)
+  - Extended the list of always ignored directories (by language servers) with common cases.
+
+JetBrains: 
+  - Improve handling of `relative_path` parameter 
+     - Improve its documentation to avoid usage errors
+     - Replace escaped characters in `relative_path` with their unescaped counterparts (&lt; and &gt;)
+     - `FindSymbolTool`: Force `search_deps=True` if `relative_path` pertains to external dependencies.
 
 * Language Servers:
-  - Added Crystal language support (uses [Crystalline](https://github.com/elbywan/crystalline) language server)  
+  - Add mSL (mIRC Scripting Language) support (custom pygls-based language server; symbols, references, definitions)
+
+# 1.1.1
+
+* General:
+  - Enable cert verification for HTTPS request to oraios-software.de #1320
+
+* JetBrains:
+  - `JetBrainsRenameTool` can now also rename occurrences in comments and text.
+
+* Language Servers:
+  - Fix Dart LSP returning only symbol name as body instead of full method body.
+
+
+# 1.1.0
+
+* General:
+  - **Major**: Add commands for hooks and documentation of recommended setup. Consider setting up the [recommended hooks](https://oraios.github.io/serena/02-usage/030_clients.html) !
+  - Add `serena init` and `serena setup` commands
+  - Rework installation instructions, switching to releases on pypi for distribution. Please update your mcp startup commands!
+  - Add minimal usage data collection on startup (only Serena version, language backend, OS, dashboard enabled status; no personally identifiable information)
+  - Fix: git commit id in Serena version strings was incorrect
+
+* Language Servers:
+  - Add support for Haxe via vshaxe/haxe-language-server. Requires Haxe compiler 3.4.0+ and Node.js. Auto-discovered from the vshaxe VSCode extension or configurable via `ls_path` in `ls_specific_settings`.
+  - Add Crystal language support (uses [Crystalline](https://github.com/elbywan/crystalline) language server)
+  - Fix: Reactivation of the same project restarted language servers #1280
+
+* JetBrains:
+  - `JetBrainsFindReferencingSymbolTool`: Include context lines (when using plugin version 2023.2.15+)
 
 * Dashboard:
   - Add version display
-  - Dashboard viewer (Windows): Add a parent monitoring thread to ensure termination.
+  - Fix: Dashboard viewer (Windows): Add a parent monitoring thread to ensure termination.
     Some clients would terminate the MCP server in a way that did not ensure proper termination.
-
-* Fixes:
-  - Fix reactivation of the same project restarting language servers #1280
-  - Fix git commit id in version
-  - Fix manual shutdown triggered by GUI tool/dashboard not cleaning everything up.
+  - Fix: Manual server shutdown triggered by GUI tool/dashboard not cleaning everything up.
 
 # 1.0.0
 
