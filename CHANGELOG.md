@@ -2,8 +2,9 @@
 
 Status of the `main` branch. Changes prior to the next official version change will appear here.
 
+# v1.2.0 (2026-04-27)
+
 * General:
-  - Support `serena --version` CLI command for displaying the current version #1347
   - Fix: Check for ignored path ignored `.git` folder only at the top level, not in every subdirectory (`Project._is_ignored_relative_path`) #1350
   - `GetSymbolsOverviewTool`: ignored paths were not respected in LSP variant (fix in `SolidLanguageServer`)
   - Fix: Duplicate comments in re-saved YAML configuration files #1285
@@ -31,6 +32,13 @@ Status of the `main` branch. Changes prior to the next official version change w
     The `initial_instructions` tool provides the full prompt on demand, keeping the initial context lean.
   - Add `serena_info` tool for on-demand retrieval of usage information
 
+* CLI:
+  - Support `serena --version` CLI command for displaying the current version #1347
+  - Extend `prompts` subcommand with `print-prompt-template` and `print-cc-system-prompt-override`, improve `list` subcommand
+
+* Clients:
+  - Document workaround to make Claude Code use Serena's tools after recent degradations caused by changes in CC harness and Opus 4.7 release.
+
 * JetBrains:
   - Add `debug` tool: The agent can set breakpoints, inspect variables, evaluate expressions and control execution flow
     by directly interacting with the IDE's debugger, using a REPL-style interface for maximum flexibility.  
@@ -50,10 +58,13 @@ Status of the `main` branch. Changes prior to the next official version change w
   - Add JSON language server support via `vscode-json-languageserver` (experimental) #1391
   - Fix: Elixir/Expert deadlock on startup — Expert's build pipeline requires a `textDocument/didOpen` notification to start; Serena now opens `mix.exs` immediately after `initialized` so Expert begins compiling instead of waiting indefinitely #1397
 
-Dashboard:
+* Dashboard:
   - Add configurable dashboard interface mode (new global configuration setting `web_dashboard_interface`):
     Three modes (browser, native app with tray, tray manager for aggregating multiple instances) are supported, depending on the OS
   - Fix: Memory leaks in frontend when using Chromium-based browsers/Windows webview #1389
+
+* Hooks:
+  - Adjusted wording of startup hook, improving project activation instructions #1401.
 
 # v1.1.2 (2026-04-14)
 
