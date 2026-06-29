@@ -228,8 +228,8 @@ class ClangdLanguageServer(SolidLanguageServer):
             """
             import shutil
 
-            clangd_version = self._custom_settings.get("clangd_version", "19.1.2")
-            default_version = clangd_version == "19.1.2"
+            clangd_version = self._custom_settings.get("clangd_version", "22.1.6")
+            default_version = clangd_version == "22.1.6"
 
             deps = RuntimeDependencyCollection(
                 [
@@ -240,7 +240,7 @@ class ClangdLanguageServer(SolidLanguageServer):
                         platform_id="linux-x64",
                         archive_type="zip",
                         binary_name=f"clangd_{clangd_version}/bin/clangd",
-                        sha256="7c09614eff857d590e4502ef516f035ff94cfb8b795de14ece5afbc53a206caf" if default_version else None,
+                        sha256="a9c77443af2e447ed467e84771848d3a6ac1c56f84bcfcde717e66318de77cfa" if default_version else None,
                         allowed_hosts=CLANGD_ALLOWED_HOSTS,
                     ),
                     RuntimeDependency(
@@ -250,7 +250,7 @@ class ClangdLanguageServer(SolidLanguageServer):
                         platform_id="win-x64",
                         archive_type="zip",
                         binary_name=f"clangd_{clangd_version}/bin/clangd.exe",
-                        sha256="5b6ceb0f85d63fa0c2c9aab31c29bebd41dc11da1f160ef21bc2fea93270a20d" if default_version else None,
+                        sha256="ce54f16e0b4fd76d450eeda9664420b195360b73febcfe40e661108fa57f2ce1" if default_version else None,
                         allowed_hosts=CLANGD_ALLOWED_HOSTS,
                     ),
                     RuntimeDependency(
@@ -260,7 +260,7 @@ class ClangdLanguageServer(SolidLanguageServer):
                         platform_id="osx-x64",
                         archive_type="zip",
                         binary_name=f"clangd_{clangd_version}/bin/clangd",
-                        sha256="d3b329b3f58602c57ca6501d255147af1bccad3691b1cb0c12c258fcd2da1be3" if default_version else None,
+                        sha256="631aef462556cbd74e0ebaae1778a38d1997d0ba3371652ca54f82652a179e7d" if default_version else None,
                         allowed_hosts=CLANGD_ALLOWED_HOSTS,
                     ),
                     RuntimeDependency(
@@ -270,7 +270,7 @@ class ClangdLanguageServer(SolidLanguageServer):
                         platform_id="osx-arm64",
                         archive_type="zip",
                         binary_name=f"clangd_{clangd_version}/bin/clangd",
-                        sha256="d3b329b3f58602c57ca6501d255147af1bccad3691b1cb0c12c258fcd2da1be3" if default_version else None,
+                        sha256="631aef462556cbd74e0ebaae1778a38d1997d0ba3371652ca54f82652a179e7d" if default_version else None,
                         allowed_hosts=CLANGD_ALLOWED_HOSTS,
                     ),
                 ]
