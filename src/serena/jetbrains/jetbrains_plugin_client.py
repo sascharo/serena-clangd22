@@ -225,7 +225,7 @@ class JetBrainsPluginClient(ToStringMixin):
         return ["_port", "project_root", "_plugin_version"]
 
     @classmethod
-    def from_project(cls, project: Project, log_warning: bool = True) -> Self:
+    def from_project(cls, project: Project, log_warning: bool = True) -> "JetBrainsPluginClient":
         resolved_path = Path(project.project_root).resolve()
 
         if cls._last_port is not None:
@@ -311,8 +311,8 @@ class JetBrainsPluginClient(ToStringMixin):
             if method.upper() == "GET":
                 response = self._session.get(url, timeout=self._timeout)
             elif method.upper() == "POST":
-                json_data = json.dumps(data) if data else None
-                response = self._session.post(url, data=json_data, timeout=self._timeout)
+                data_dict = data if data is not None else {}
+                response = self._session.post(url, data=json.dumps(data_dict), timeout=self._timeout)
             else:
                 raise ValueError(f"Unsupported HTTP method: {method}")
 
@@ -355,7 +355,7 @@ class JetBrainsPluginClient(ToStringMixin):
         """
         to_snake_case = lambda s: "".join(["_" + c.lower() if c.isupper() else c for c in s])
 
-        def convert(x):  # type: ignore
+        def convert(x):
             if isinstance(x, dict):
                 return {to_snake_case(k): convert(v) for k, v in x.items()}
             elif isinstance(x, list):
@@ -721,5 +721,5 @@ class JetBrainsPluginClient(ToStringMixin):
     def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):  # type: ignore
+    def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
