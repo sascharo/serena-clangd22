@@ -26,7 +26,10 @@ Status of the `main` branch. Changes prior to the next official version change w
     (which does not correctly unpack structured output) #1042
   - Fix: Project-specific filtering of files for source files ignored the language backend. 
     The check is really only possible for LSP. 
-  - Fix: File system permission errors during gitignore scanning were not caught #1624 
+  - Fix: File system permission errors during gitignore scanning were not caught #1624
+  - During project creation, language composition percentages are now computed relative to the total number 
+    of recognised source files instead of all files, i.e. unrecognised files are ignored in the percentage 
+    computation.
 
 * CLI:
   - Fix `--project-from-cwd` hijacking git worktrees nested under a Serena project. `find_project_root`
@@ -59,6 +62,7 @@ Status of the `main` branch. Changes prior to the next official version change w
   - Improve quoting of arguments in shell executions
   - Add **LaTeX** support (experimental) via [texlab](https://github.com/latex-lsp/texlab).
   - PHP: add support for PHPantom as alternative to the already supported PHP LS #1554.
+  - Add new launch command customization options: `ls_args`, `ls_extra_args` and `ls_base_cmd`
 
 * JetBrains:
   - Add configuration option `jetbrains_launch_command`, allowing Serena to spawn IDE instances automatically
