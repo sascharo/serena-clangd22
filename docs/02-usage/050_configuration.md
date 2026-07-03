@@ -7,7 +7,7 @@ You can disable tools, change Serena's fundamental instructions
 (what we denote as the `system_prompt`), adjust the output of tools that just provide a prompt, 
 and even adjust tool descriptions.
 
-Serena is configured in using a multi-layered approach:
+Serena is configured using a multi-layered approach:
 
  * **global configuration** (`serena_config.yml`, see below)
  * **project configuration** (`project.yml`, see [Project Configuration](project-config))
@@ -249,6 +249,36 @@ Common examples include: `ansible`, `bash`, `bsl`, `clojure`, `cpp`, `cpp_ccls`,
 
 If `ls_path` is set, Serena's managed download or install is bypassed for that language server.
 In that case, any server-specific version or registry settings do not apply.
+
+(override-init-options)=
+#### Overriding Language Server Initialization Options
+
+When Serena starts a language server, it sends a set of `initializationOptions` as part of the
+Language Server Protocol `initialize` request. These options are constructed internally and are
+tailored to each language server. In some cases, you may want to override or extend these options,
+e.g. to enable a feature or to adjust a behavior that is specific to your setup.
+
+Under the key `initializationOptions` within a language's `ls_specific_settings`, you can provide a
+dictionary of options that is applied on top of the internally constructed `initializationOptions`.
+The values are combined at the top level only: for each top-level key you define, your value
+replaces the original value for that key exactly as given (there is no recursive/deep merge of
+nested dictionaries). Internally constructed keys that you do not define are left unchanged.
+
+* If Serena constructs `initializationOptions` for the language server, each top-level key you
+  provide replaces the internally constructed value for that same key, while all other internally
+  constructed keys are retained.
+* If Serena does not construct any `initializationOptions` for the language server, your custom
+  options are used as-is.
+
+Example:
+
+```yaml
+ls_specific_settings:
+  <language>:
+    initializationOptions:
+      someFeature:
+        enabled: true
+```
 
 #### AL
 
@@ -1000,9 +1030,7 @@ Supported settings:
 | `typescript_version` | `5.9.3` | Override the bundled `typescript` npm package version Serena installs when `ls_path` is not set. |
 | `typescript_language_server_version` | `5.1.3` | Override the bundled `typescript-language-server` npm package version Serena installs when `ls_path` is not set. |
 | `npm_registry` | `null` | Override the npm registry Serena uses for the managed install. |
-
-TypeScript supports [additional workspace folders](additional-workspace-folders) for cross-package
-reference discovery. Configure `additional_workspace_folders` in `project.yml` to enable this feature.
+| `indexing_timeout` | `30.0` | Timeout in seconds for waiting on tsserver's `$/progress` project-indexing signal (both at startup and before the first cross-file reference query). If indexing does not complete within this window, Serena logs a warning and proceeds anyway. Increase it for very large projects. |
 
 #### Svelte
 

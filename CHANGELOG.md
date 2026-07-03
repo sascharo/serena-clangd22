@@ -51,6 +51,9 @@ Status of the `main` branch. Changes prior to the next official version change w
   - C/C++ (clangd): improve support and documentation for Unreal Engine 5 projects.
   - `typescript_vts`: Add `initialization_options` setting in `ls_specific_settings.typescript_vts`. 
     Enables Yarn PnP setups with `typescript.tsdk` pointing at the Yarn-generated SDK.
+  - TypeScript/VTS: disable automatic typing acquisition during initialization (no network
+    downloads at startup) and replace the fixed 2-second cross-file reference wait with
+    event-based `$/progress` indexing tracking (configurable `indexing_timeout`, default 30s)
   - C#: minor fixes in Omnisharp and Roslyn that prevented startup on some systems #1617
   - `SvelteLanguageServer`: Fix diagnostics requests for TypeScript/JavaScript files incorrectly being
     processed by the Svelte LS instead of the TypeScript LS.
@@ -63,6 +66,11 @@ Status of the `main` branch. Changes prior to the next official version change w
   - Add **LaTeX** support (experimental) via [texlab](https://github.com/latex-lsp/texlab).
   - PHP: add support for PHPantom as alternative to the already supported PHP LS #1554.
   - Add new launch command customization options: `ls_args`, `ls_extra_args` and `ls_base_cmd`
+  - Add new configuration option `ls_workspace_folders` to allow indexed source folders to be specified
+    explicitly. In monorepos, this allows the set of indexed folders to be restricted to a subset of
+    the repository. #1627
+  - Rename configuration option `additional_workspace_folders` to `ls_additional_workspace_folders`
+    and support the option across all language servers (previously limited to TypeScript).
 
 * JetBrains:
   - Add configuration option `jetbrains_launch_command`, allowing Serena to spawn IDE instances automatically
