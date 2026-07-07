@@ -49,6 +49,10 @@ Status of the `main` branch. Changes prior to the next official version change w
 
 * Language Servers:
   - C/C++ (clangd): improve support and documentation for Unreal Engine 5 projects.
+  - HLSL (`shader-language-server`): pass `--locked` to `cargo install` when building from source
+    on macOS (and in the manual-install instructions), honoring the crate's packaged `Cargo.lock`.
+    Without it, fresh dependency resolution pulled in shader-sense 1.4.0, which no longer compiles
+    against the pinned shader_language_server 1.3.1, breaking the macOS CI job.
   - `typescript_vts`: Add `initialization_options` setting in `ls_specific_settings.typescript_vts`. 
     Enables Yarn PnP setups with `typescript.tsdk` pointing at the Yarn-generated SDK.
   - TypeScript/VTS: disable automatic typing acquisition during initialization (no network
@@ -62,6 +66,12 @@ Status of the `main` branch. Changes prior to the next official version change w
   - `JuliaLanguageServer`: Fix the stdio MCP server exiting right after `initialize` ("tools fetch failed")
     when `julia` is enabled. #1577
   - `Java`: invalidate JDTLS workspace cache when Java import settings change #1576
+  - `Java`: use `JAVA_HOME` for Gradle import when `use_system_java_home` is enabled and `gradle_java_home`
+    is unset. #1657
+  - `Java`: stop hard-ignoring directories named `target`/`build`/`bin`/`out`/`classes`/`dist`/`lib` in
+    `EclipseJDTLS`. These are all valid Java package identifiers, so ignoring them by name hid legitimate
+    source from the symbol tools even when they were not gitignored. Removed the hardcoded override; real
+    build output is already excluded via `.gitignore`. #1645
   - Improve quoting of arguments in shell executions
   - Add **LaTeX** support (experimental) via [texlab](https://github.com/latex-lsp/texlab).
   - PHP: add support for PHPantom as alternative to the already supported PHP LS #1554.
