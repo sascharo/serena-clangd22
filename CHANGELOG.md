@@ -56,6 +56,12 @@ Status of the `main` branch. Changes prior to the next official version change w
     (e.g. JDTLS reporting Lombok-generated classes under `target/classes`). Missing paths are now
     classified by the usual ignore rules, and symbol locations resolving to non-existent files are skipped.
   - Solidity: fix diagnostics intermittently coming back empty on slow or cold environments (macOS/Windows CI).
+  - Perl: expose `file_filter` and `ignore_dirs` via `ls_specific_settings["perl"]`, so projects with
+    non-standard extensions (e.g. `.cgi`, `.psgi`) can make those files visible to Perl::LanguageServer.
+    Configured extensions are also synced into the Perl source-file matcher (now a cached singleton),
+    keeping `find_symbol` / symbol indexing consistent with the LS; the matcher is reset on every
+    language server activation so one project's reconfiguration does not leak into the next.
+    `FilenameMatcher` gains `add_extensions` / `reset` methods. Defaults are unchanged. #1449
   - C/C++ (clangd): improve support and documentation for Unreal Engine 5 projects.
   - HLSL (`shader-language-server`): pass `--locked` to `cargo install` when building from source
     on macOS (and in the manual-install instructions), honoring the crate's packaged `Cargo.lock`.
@@ -87,6 +93,8 @@ Status of the `main` branch. Changes prior to the next official version change w
     build output is already excluded via `.gitignore`. #1645
   - Improve quoting of arguments in shell executions
   - Add **LaTeX** support (experimental) via [texlab](https://github.com/latex-lsp/texlab).
+  - Add **QML** support via Qt's [`qmlls`](https://doc.qt.io/qt-6/qtqml-tool-qmlls.html) language
+    server (requires Qt 6 with `qmlls`/`qmlls6` on PATH). #1381
   - PHP: add support for PHPantom as alternative to the already supported PHP LS #1554.
   - Add new launch command customization options: `ls_args`, `ls_extra_args` and `ls_base_cmd`
   - Add new configuration option `ls_workspace_folders` to allow indexed source folders to be specified
@@ -99,6 +107,7 @@ Status of the `main` branch. Changes prior to the next official version change w
   - Add configuration option `jetbrains_launch_command`, allowing Serena to spawn IDE instances automatically
     upon project activation
   - Fix: `jet_brains_list_inspections` failed when only default parameters were used #1615 
+  - Fix: `jet_brains_run_inspections` returned incorrectly transformed data (malforming snake-case conversion applied to all keys)
 
 * Dashboard:
   - Make list of trusted hosts configurable, fixing host validation introduced in v1.5.2 allowing only
