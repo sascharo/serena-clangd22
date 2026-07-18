@@ -100,7 +100,7 @@ class MatchedConsecutiveLines:
     def from_file_contents(
         cls, file_contents: str, line: int, context_lines_before: int = 0, context_lines_after: int = 0, source_file_path: str | None = None
     ) -> Self:
-        line_contents = file_contents.split("\n")
+        line_contents = TextUtils.split_lines(file_contents)
         start_lineno = max(0, line - context_lines_before)
         end_lineno = min(len(line_contents) - 1, line + context_lines_after)
         text_lines: list[TextLine] = []
@@ -169,7 +169,7 @@ def search_text(
         raise ValueError("Pass either content or source_file_path")
 
     matches = []
-    lines = content.splitlines()
+    lines = TextUtils.split_lines(content)
     total_lines = len(lines)
 
     # Convert pattern to a compiled regex if it's a string
@@ -185,8 +185,12 @@ def search_text(
         end_pos = match.end()
 
         # Find the line numbers for the start and end positions
-        start_line_num = content[:start_pos].count("\n")
-        end_line_num = content[:end_pos].count("\n")
+        start_line_num = TextUtils.get_line_from_index(content, start_pos)
+        end_line_num = TextUtils.get_line_from_index(content, end_pos)
+        if end_line_num > start_line_num and TextUtils.get_line_col_from_index(content, end_pos)[1] == 0:
+            # `end_pos` is exclusive, so if it is at the start of a line, the match ends with the
+            # preceding line's newline and does not extend into the line that `end_pos` points to
+            end_line_num -= 1
 
         # Calculate the range of lines to include in the context
         context_start = max(0, start_line_num - context_lines_before)
@@ -216,18 +220,22 @@ def expand_braces(pattern: str) -> list[str]:
     Handles multiple brace sets as well.
     """
     patterns = [pattern]
-    while any("{" in p for p in patterns):
+    while any("{" in p or "}" in p for p in patterns):
         new_patterns = []
         for p in patterns:
-            match = re.search(r"\{([^{}]+)\}", p)
+            match = re.search(r"\{([^{}]*)\}", p)
             if match:
+                options_expr = match.group(1)
+                if not options_expr:
+                    raise ValueError(f"Invalid glob brace expression in {pattern!r}: empty braces are not allowed")
+
                 prefix = p[: match.start()]
                 suffix = p[match.end() :]
-                options = match.group(1).split(",")
+                options = options_expr.split(",")
                 for option in options:
                     new_patterns.append(f"{prefix}{option}{suffix}")
             else:
-                new_patterns.append(p)
+                raise ValueError(f"Invalid glob brace expression in {pattern!r}: unmatched brace")
         patterns = new_patterns
     return patterns
 

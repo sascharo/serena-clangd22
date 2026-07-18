@@ -21,6 +21,7 @@ from serena.util.text_utils import (
     expand_braces,
     glob_match,
 )
+from solidlsp.ls_utils import TextUtils
 
 
 class ReadFileTool(Tool):
@@ -33,7 +34,7 @@ class ReadFileTool(Tool):
         Reads the given file or a chunk of it.
 
         :param relative_path: the relative path to the file to read
-        :param start_line: the 0-based index of the first line to be retrieved.
+        :param start_line: the 0-based index of the first line to be retrieved, negative values count from the end of the file.
         :param end_line: the 0-based index of the last line to be retrieved (inclusive). If None, read until the end of the file.
         :param max_answer_chars: if the file (chunk) is longer than this number of characters,
             no content will be returned. Don't adjust unless there is really no other way to get the content
@@ -42,8 +43,10 @@ class ReadFileTool(Tool):
         """
         self.project.validate_relative_path(relative_path, require_not_ignored=True)
 
+        # read lines, using the same (LSP-compliant) notion of line breaks as the line-based editing tools
         result = self.project.read_file(relative_path)
-        result_lines = result.splitlines()
+        result_lines = TextUtils.split_lines(result)
+
         if end_line is None:
             result_lines = result_lines[start_line:]
         else:
@@ -60,7 +63,7 @@ class CreateTextFileTool(EditingToolWithDiagnostics):
 
     def apply(self, relative_path: str, content: str) -> str:
         """
-        Write a new file or overwrite an existing file.
+        Write a new file or overwrite an existing file with the given content.
 
         :param relative_path: the relative path to the file to create
         :param content: the (appropriately encoded) content to write to the file
@@ -181,16 +184,12 @@ class ReplaceContentTool(EditingToolWithDiagnostics):
         r"""
         Replaces one or more occurrences of a given pattern in a file with new content.
 
-        This is the preferred way to replace content in a file whenever the symbol-level
-        tools are not appropriate.
-
-        VERY IMPORTANT: The "regex" mode allows very large sections of code to be replaced without fully quoting them!
-        Use a regex of the form "beginning.*?end-of-text-to-be-replaced" to be faster and more economical!
-        ALWAYS try to use wildcards to avoid specifying the exact content to be replaced,
-        especially if it spans several lines. Note that you cannot make mistakes, because if the regex should match
-        multiple occurrences while you disabled `allow_multiple_occurrences`, an error will be returned, and you can retry
-        with a revised regex.
-        Therefore, using regex mode with suitable wildcards is usually the best choice!
+        VERY IMPORTANT: The "regex" mode allows very large sections of code to be replaced WITHOUT
+        quoting them fully: use a needle of the form "beginning.*?end-of-text-to-be-replaced" with
+        wildcards instead of pasting the exact original text — shorter, cheaper, and you cannot make
+        mistakes, because an ambiguous match returns an error you can refine, so wildcards are safe.
+        Prefer regex mode with suitable wildcards for long multi-line replacements; use the
+        symbol-level editors when replacing a whole method/class.
 
         :param relative_path: the relative path to the file
         :param needle: the string or regex pattern to search for.
@@ -594,10 +593,6 @@ class SearchForPatternTool(Tool):
         if relative_path:
             self.project.validate_relative_path(relative_path, require_not_ignored=True)
 
-        abs_path = os.path.join(self.get_project_root(), relative_path)
-        if not os.path.exists(abs_path):
-            raise FileNotFoundError(f"Relative path {relative_path} does not exist.")
-
         matches = self.project.search_project_files_for_pattern(
             pattern=substring_pattern,
             relative_path=relative_path,
@@ -616,15 +611,48 @@ class SearchForPatternTool(Tool):
             file_to_matches[match.source_file_path].append(match.to_display_string())
 
         # capture lightweight match data for shortening before serialization
-        match_lines_by_file: dict[str, list[int]] = defaultdict(list)
+        match_lines_by_file: dict[str, list[dict[str, int | str]]] = defaultdict(list)
         for match in matches:
             assert match.source_file_path is not None
-            match_lines_by_file[match.source_file_path].append(match.matched_lines[0].line_number)
+            first = match.matched_lines[0]
+            match_lines_by_file[match.source_file_path].append({"line": first.line_number, "text": first.line_content.strip()})
 
         # shortened result closures, from least to most aggressive shortening
-        def make_lines_only() -> str:
-            """Match locations without surrounding context"""
-            return f"Match lines per file:\n{self._to_json(match_lines_by_file)}"
+        _TEXT_TRUNCATE = 60
+
+        def render_first_lines(truncate: bool) -> str:
+            """Render each match's first line, either in full or truncated to a fixed length."""
+
+            def entry_text(text: str) -> str:
+                if truncate and len(text) > _TEXT_TRUNCATE:
+                    return text[:_TEXT_TRUNCATE] + "..."
+                return text
+
+            compact = {
+                path: [{"line": m["line"], "text": entry_text(str(m["text"]))} for m in lines]
+                for path, lines in match_lines_by_file.items()
+            }
+            if truncate:
+                header = (
+                    f"Matched lines (text over {_TEXT_TRUNCATE} chars is truncated, marked with a trailing '...'); "
+                    "use read_file with the line numbers for full content:"
+                )
+            else:
+                header = "Matched lines per file; use read_file with the line numbers for surrounding context:"
+            return f"{header}\n{self._to_json(compact)}"
+
+        def make_first_lines_full() -> str:
+            """Match locations with each match's full first line."""
+            return render_first_lines(truncate=False)
+
+        def make_first_lines_truncated() -> str:
+            """Match locations with each match's first line truncated to a fixed length."""
+            return render_first_lines(truncate=True)
+
+        def make_line_numbers_only() -> str:
+            """Match locations as bare line numbers (no text)."""
+            numbers = {path: [m["line"] for m in lines] for path, lines in match_lines_by_file.items()}
+            return f"Match lines per file:\n{self._to_json(numbers)}"
 
         def make_per_file_counts() -> str:
             counts = {path: len(lines) for path, lines in match_lines_by_file.items()}
@@ -635,5 +663,13 @@ class SearchForPatternTool(Tool):
 
         result = self._to_json(file_to_matches)
         return self._limit_length(
-            result, max_answer_chars, shortened_result_factories=[make_lines_only, make_per_file_counts, make_summary]
+            result,
+            max_answer_chars,
+            shortened_result_factories=[
+                make_first_lines_full,
+                make_first_lines_truncated,
+                make_line_numbers_only,
+                make_per_file_counts,
+                make_summary,
+            ],
         )
