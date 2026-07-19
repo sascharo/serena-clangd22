@@ -15,6 +15,19 @@ Status of the `main` branch. Changes prior to the next official version change w
     line; any other out-of-range end position now raises `InvalidTextLocationError` instead,
     rather than guessing at a body that could be wrong #1498
 
+* Language Servers:
+  - Java (JDT-LS): add `runtimes` to `ls_specific_settings.java`, a list of extra JRE/JDK entries
+    (`name`, `path`, optional `default`/`sources`/`javadoc`) passed through to JDT-LS's
+    `java.configuration.runtimes`. Fixes silently broken JDK type resolution (`java.lang.Object`
+    and other JDK types reported as "cannot be resolved") for projects whose source/target level
+    exceeds the bundled JDK 21 JRE JDT-LS registers by default; configured runtimes extend rather
+    than replace that bundled default. #1478
+  - `gopls`: Fix `replace_symbol_body` corrupting single `type`/`var`/`const` declarations by
+    duplicating the leading keyword (e.g. `type Foo` becoming `type type Foo`). gopls reports the
+    symbol range of such declarations starting at the identifier rather than the keyword (unlike
+    `func` declarations); the range is now extended to include the keyword so the body and the
+    replacement range stay consistent.
+
 * Tools:
   - Fix: `search_for_pattern` marked one line too many as matched whenever a match ended with a line
     break, because the match's exclusive end index was mapped to a line number directly and therefore
@@ -31,6 +44,12 @@ Status of the `main` branch. Changes prior to the next official version change w
     - searched via `SearchForPatternTool`
     - used in `JetBrainsFindDeclarationTool`
     when using plugin version 2023.3.3+
+
+* Dashboard:
+  - Fix: the "Last Execution" panel stayed on "Loading..." forever when there was no logged execution
+    (e.g. a fresh server / no tool run yet), because `loadLastExecution()` only rendered the panel when
+    the backend returned a non-null execution; the empty state is now rendered via the existing
+    `displayLastExecution(null)` path, mirroring the other panels #1713
 
 * Dependencies:
   - Bump mcp from 1.27.0 to 1.28.1
