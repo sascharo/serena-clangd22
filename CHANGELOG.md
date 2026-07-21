@@ -2,6 +2,8 @@
 
 Status of the `main` branch. Changes prior to the next official version change will appear here.
 
+# v1.6.1 (2026-07-21)
+
 * General:
   - Fix: `FileUtils.read_file`'s `charset_normalizer` fallback (used when a file cannot be decoded with
     the project's configured `encoding`) decoded the raw bytes directly and therefore skipped the
@@ -16,6 +18,15 @@ Status of the `main` branch. Changes prior to the next official version change w
     rather than guessing at a body that could be wrong #1498
 
 * Language Servers:
+  - Fix: Properly differentiate between raw and high-level symbol cache fingerprints, avoiding unnecessary
+    invalidations of the raw cache when only the derived high-level representation changes
+  - Fix: Language servers were not notified of external file system changes, causing some
+    symbolic operations (such as `find_referencing_symbols`) to report stale information.
+    An explicit file system polling mechanism is now used to detect changes prior to the affected
+    tool executions.
+  - Fix: Order of ignore patterns passed to language servers was not respected #1729 
+  - Improve uv-based language server launch command compatibility: Use the more widely supported 
+    `uv tool run` instead of `uv x` #1721
   - Java (JDT-LS): add `runtimes` to `ls_specific_settings.java`, a list of extra JRE/JDK entries
     (`name`, `path`, optional `default`/`sources`/`javadoc`) passed through to JDT-LS's
     `java.configuration.runtimes`. Fixes silently broken JDK type resolution (`java.lang.Object`
@@ -27,6 +38,10 @@ Status of the `main` branch. Changes prior to the next official version change w
     symbol range of such declarations starting at the identifier rather than the keyword (unlike
     `func` declarations); the range is now extended to include the keyword so the body and the
     replacement range stay consistent.
+  - `typescript` / `typescript_vts`: No longer ignore directories named `coverage`. This was intended to skip
+    coverage-report output, but matched by bare dirname and so also hid legitimate source directories named
+    `coverage` (e.g. `src/routes/coverage/`) from symbol tools. Generated report dirs are already covered by
+    gitignore. Fixes #1523.
 
 * Tools:
   - Fix: `search_for_pattern` marked one line too many as matched whenever a match ended with a line
@@ -38,6 +53,17 @@ Status of the `main` branch. Changes prior to the next official version change w
     it fits, otherwise truncated with a trailing '...' and a note) before falling back to bare line
     numbers, so agents can pick the right match without re-reading files. #1640
 
+* Language Servers:
+  - PHP: treat `.phtml` files as PHP sources by default (all PHP language servers) #1710
+  - PHP/Intelephense: expose `file_filter` via `ls_specific_settings["php"]`, so that additional
+    extensions containing PHP sources (e.g. Drupal's `.module` / `.install` / `.inc` / `.theme`)
+    become visible to the symbol tools and are indexed by the language server #1710
+  - Fix: an LSP `ContentModified` (-32801) response was surfaced as a hard `SolidLSPException`
+    instead of being retried, as the spec expects for requests a client declared it will reissue.
+    `send_request` now retries such responses for methods declared via a server's
+    `retryOnContentModified` capability; rust-analyzer declares `textDocument/hover`, fixing the
+    flaky `test_find_symbol[rust_add_function]` on windows-latest. #1724
+
 * JetBrains:
   - Allow external files from dependencies (specified via references like "<ext:FileUtil.class|472e0a13>") to be
     - read via `ReadFileTool` 
@@ -46,13 +72,15 @@ Status of the `main` branch. Changes prior to the next official version change w
     when using plugin version 2023.3.3+
 
 * Dashboard:
+  - The version display now indicates when a newer Serena version is available
   - Fix: the "Last Execution" panel stayed on "Loading..." forever when there was no logged execution
     (e.g. a fresh server / no tool run yet), because `loadLastExecution()` only rendered the panel when
     the backend returned a non-null execution; the empty state is now rendered via the existing
     `displayLastExecution(null)` path, mirroring the other panels #1713
 
 * Dependencies:
-  - Bump mcp from 1.27.0 to 1.28.1
+  - Bump `mcp` from 1.27.0 to 1.28.1
+  - Bump `anthropic` from 0.59.0 to 0.117.0
 
 # v1.6.0 (2026-07-16)
 
