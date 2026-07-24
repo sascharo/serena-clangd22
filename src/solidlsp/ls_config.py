@@ -87,7 +87,7 @@ class FilenameMatcher:
         return False
 
 
-class Language(str, Enum):
+class LanguageServerId(str, Enum):
     """
     Enumeration of language servers supported by SolidLSP.
     """
@@ -194,6 +194,8 @@ class Language(str, Enum):
     """Ty language server for Python (instead of pyright, which is the default)."""
     PYTHON_PYREFLY = "python_pyrefly"
     """Pyrefly language server for Python (instead of pyright, which is the default)."""
+    PYTHON_BASEDPYRIGHT = "python_basedpyright"
+    """BasedPyright language server for Python (instead of pyright, which is the default)."""
     CSHARP_OMNISHARP = "csharp_omnisharp"
     """OmniSharp language server for C# (instead of the default csharp-ls by microsoft).
     Currently has problems with finding references, and generally seems less stable and performant.
@@ -286,7 +288,7 @@ class Language(str, Enum):
     """
 
     @classmethod
-    def iter_all(cls, include_experimental: bool = False, include_non_programming_languages: bool = True) -> Iterable[Self]:
+    def iter_all(cls, include_experimental: bool = True, include_non_programming_languages: bool = True) -> Iterable[Self]:
         for lang in cls:
             if include_experimental or not lang.is_experimental():
                 if include_non_programming_languages or lang.is_programming_language():
@@ -294,11 +296,8 @@ class Language(str, Enum):
 
     def is_experimental(self) -> bool:
         """
-        Check if the language server is experimental or deprecated.
-
-        Note for serena users/developers:
-        Experimental languages are not autodetected and must be explicitly specified
-        in the project.yml configuration.
+        Check if the language server is experimental (potentially not robust),
+        secondary (not default for respective language) or deprecated.
         """
         return self in {
             self.ANSIBLE,
@@ -306,6 +305,7 @@ class Language(str, Enum):
             self.PYTHON_JEDI,
             self.PYTHON_TY,
             self.PYTHON_PYREFLY,
+            self.PYTHON_BASEDPYRIGHT,
             self.CSHARP_OMNISHARP,
             self.RUBY_SOLARGRAPH,
             self.PHP_PHPACTOR,
@@ -359,7 +359,7 @@ class Language(str, Enum):
     @cache
     def get_source_fn_matcher(self) -> FilenameMatcher:
         match self:
-            case self.PYTHON | self.PYTHON_JEDI | self.PYTHON_TY | self.PYTHON_PYREFLY:
+            case self.PYTHON | self.PYTHON_JEDI | self.PYTHON_TY | self.PYTHON_PYREFLY | self.PYTHON_BASEDPYRIGHT:
                 return FilenameMatcher(".py", ".pyi")
             case self.JAVA:
                 return FilenameMatcher(".java")
@@ -609,6 +609,10 @@ class Language(str, Enum):
                 from solidlsp.language_servers.pyrefly_server import PyreflyLanguageServer
 
                 return PyreflyLanguageServer
+            case self.PYTHON_BASEDPYRIGHT:
+                from solidlsp.language_servers.basedpyright_server import BasedPyrightLanguageServer
+
+                return BasedPyrightLanguageServer
             case self.JAVA:
                 from solidlsp.language_servers.eclipse_jdtls import EclipseJDTLS
 
@@ -891,7 +895,7 @@ class LanguageServerConfig:
     Configuration parameters for a language server instance
     """
 
-    code_language: Language
+    ls_id: LanguageServerId
     """
     defines the language server to use
     """
