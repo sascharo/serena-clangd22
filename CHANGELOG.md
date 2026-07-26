@@ -3,6 +3,7 @@
 Status of the `main` branch. Changes prior to the next official version change will appear here.
 
 * General:
+  - Fix: the README, the Language Support docs page and the project template omitted several already-supported language servers
   - Fix: a tool call exceeding the timeout blocked the task executor indefinitely; the executor now
     recovers without user-induced cancellation
   - Add Grok Build support (context `grok`, setup CLI, hooks)
@@ -27,6 +28,11 @@ Status of the `main` branch. Changes prior to the next official version change w
     for projects where the initial project-graph resolution itself takes longer than that. The grace
     is now `indexing_start_grace` (default 5.0s), configurable the same way as `indexing_timeout` and
     `server_ready_timeout` #1586
+  - Fix: On Linux, a language server process spawned in its own session (the default) is no longer
+    orphaned when Serena is killed without a chance to shut down cleanly (e.g. SIGKILL, OOM) #1490
+  - Language servers and their dependency providers now go through the `subprocess_run` helper instead of
+    calling `subprocess.run` directly (e.g. for installation processes), so all such subprocesses get 
+    `stdin=DEVNULL` and can no longer interfere with the stdio MCP connection #1748
 
 * Hooks:
   - Add `serena-hooks --client=grok`, including Grok-native PreToolUse allow/deny output.
