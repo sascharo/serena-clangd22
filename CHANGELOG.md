@@ -11,11 +11,19 @@ Status of the `main` branch. Changes prior to the next official version change w
     the actual semantics (configurations are automatically migrated)
   - Fix: glob matching bare `*` and `?` in non-`**` patterns matched across `/`, contradicting documented behaviour #1732
 
+* Tools:
+  - `find_symbol`: Change tool description to improve tool search results in clients that load tools dynamically
+
 * Language Servers: 
   - Allow language server priorities to be configured in `serena_config.yml` (for auto-detection during 
     project creation) 
   - Add `python_basedpyright` as an alternative Python language server
   - Nix/nixd: support custom `ls_path` launchers and external JSON settings through `config_path` #1737
+  - Fix: `get_diagnostics_for_file` crashed with `SolidLSPException` for any Ansible file with at least
+    one lint finding, because `ansible-language-server` doesn't implement `textDocument/documentSymbol`
+    and the request used to map diagnostics onto owning symbols just threw. `AnsibleLanguageServer` now
+    overrides that request to return `None` directly, so diagnostics fall back to being grouped under
+    the file-level path as already documented #1758
 
 * JetBrains:
   - `jet_brains_find_symbol`: Disallow wildcard-only search, delegating to overview tool if request is for file
