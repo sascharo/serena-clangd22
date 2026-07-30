@@ -10,6 +10,13 @@ Status of the `main` branch. Changes prior to the next official version change w
   - The `languages` key in project configurations was changed to `language_servers` to better reflect
     the actual semantics (configurations are automatically migrated)
   - Fix: glob matching bare `*` and `?` in non-`**` patterns matched across `/`, contradicting documented behaviour #1732
+  - Project activation errors are now reported to the client in Serena's system prompt, instead of failures 
+    being visible only in the log. This applies both to a failed activation of an explicitly given project and to a 
+    failed `--project-from-cwd` auto-detection (#1773).
+
+* CLI:
+  - Fix: `start-mcp-server` help text for `--project-from-cwd` falsely promised a fallback to the CWD, which was 
+    removed in v1.0.0 #1773
 
 * Tools:
   - `find_symbol`: Change tool description to improve tool search results in clients that load tools dynamically
@@ -24,6 +31,9 @@ Status of the `main` branch. Changes prior to the next official version change w
     and the request used to map diagnostics onto owning symbols just threw. `AnsibleLanguageServer` now
     overrides that request to return `None` directly, so diagnostics fall back to being grouped under
     the file-level path as already documented #1758
+  - Fix: F#'s `module <Name>` declarations reported a `selectionRange` pointing at the `module`
+    keyword instead of at `<Name>`, so looking up hover/references from a module symbol's position
+    returned the keyword's own docs instead of the module's #925
 
 * JetBrains:
   - `jet_brains_find_symbol`: Disallow wildcard-only search, delegating to overview tool if request is for file
@@ -42,8 +52,12 @@ Status of the `main` branch. Changes prior to the next official version change w
     calling `subprocess.run` directly (e.g. for installation processes), so all such subprocesses get 
     `stdin=DEVNULL` and can no longer interfere with the stdio MCP connection #1748
 
+* Dashboard:
+  - Fix: Serena PyPI version check triggered by callback on main thread could delay agent startup #1774
+
 * Hooks:
   - Add `serena-hooks --client=grok`, including Grok-native PreToolUse allow/deny output.
+  - Use `SessionEnd` for Codex 0.145.0+ cleanup hooks and document the known `Stop` compatibility issue affecting older Codex versions.
   - PreToolUse remind hook: coerce non-string shell command values instead of failing, and recognize
     `target_file`/`targetFile` file-path keys (shared payload parsing, applies to all hook clients).
   - Fix hook input parsing for clients that emit raw control characters in JSON string values #1743.
