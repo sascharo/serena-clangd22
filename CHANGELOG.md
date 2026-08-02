@@ -32,6 +32,9 @@ Status of the `main` branch. Changes prior to the next official version change w
     and the request used to map diagnostics onto owning symbols just threw. `AnsibleLanguageServer` now
     overrides that request to return `None` directly, so diagnostics fall back to being grouped under
     the file-level path as already documented #1758
+  - Fix: pull-diagnostics fallback in `request_text_document_diagnostics` no longer swallows
+    `LanguageServerTerminatedException`, so a crash during a diagnostics pull triggers the existing
+    language-server restart path instead of silently returning no diagnostics #1770
   - Fix: F#'s `module <Name>` declarations reported a `selectionRange` pointing at the `module`
     keyword instead of at `<Name>`, so looking up hover/references from a module symbol's position
     returned the keyword's own docs instead of the module's #925
@@ -105,6 +108,7 @@ Status of the `main` branch. Changes prior to the next official version change w
     coverage-report output, but matched by bare dirname and so also hid legitimate source directories named
     `coverage` (e.g. `src/routes/coverage/`) from symbol tools. Generated report dirs are already covered by
     gitignore. Fixes #1523.
+  - Fix: Restore `erlang` support (broken since v1.6.0 due to an implementation error) 
 
 * Tools:
   - Fix: `search_for_pattern` marked one line too many as matched whenever a match ended with a line
