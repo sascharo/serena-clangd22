@@ -4,7 +4,7 @@ requires = ["hatchling"]
 
 [project]
 name = "serena-agent"
-version = "1.6.2.dev0"
+version = "1.7.1.dev0"
 description = "A powerful MCP toolkit for coding, providing semantic retrieval and editing capabilities - the IDE for your agent"
 authors = [{ name = "Oraios AI", email = "info@oraios-ai.de" }]
 readme = "README.md"
@@ -28,7 +28,6 @@ dependencies = [
   "pyyaml==6.0.2",
   "ruamel.yaml==0.18.14",
   "jinja2==3.1.6",
-  "dotenv==0.9.9",
   "pathspec==0.12.1",
   "psutil==7.0.0",
   "docstring_parser==0.17.0",

@@ -3,11 +3,32 @@
 Status of the `main` branch. Changes prior to the next official version change will appear here.
 
 * General:
+  - Fix: Parallel agents auto-registering projects could overwrite each other's changes to the global
+    project list in `serena_config.yml`
+
+* Language Servers:
+  - Fix: Dart's `$/analyzerStatus` notifications were logged as unhandled-method warnings during analysis (#1855)
+  - Fix: Scala cross-file queries waited a fixed 5s after the first file was opened, which on a cold
+    Metals is long before its build import, indexing and compilation have finished; the first
+    `find_referencing_symbols` of a session could return a fraction of the references with nothing to
+    indicate it was incomplete. Serena now declares work-done progress support and waits for the work
+    Metals reports, bounded by the new `indexing_timeout`, `indexing_start_grace` and
+    `indexing_quiet_period` settings
+
+* Dependencies:
+  - Remove the redundant `dotenv` dependency; the `dotenv` module is provided by `python-dotenv`
+
+# v1.7.0 (2026-08-09)
+
+* General:
   - Fix: Race conditions in ProjectServer when used by multiple clients in parallel   
   - Fix: `GitignoreParser` interpolated a directory's name unescaped into gitignore pattern position;
     a directory named with pattern metacharacters (e.g. a stray `***`) could turn a scoped pattern
     into one matching far more than intended, silently excluding most or all of the project from
     indexing #1806
+  - Fix: cleanup of an independently-started LSP process and its children required enumerating the
+    system process table (`psutil`), which can be denied even for processes Serena owns in a
+    sandboxed environment; cleanup now signals the known process group directly (#1818)
   - Fix: the README, the Language Support docs page and the project template omitted several already-supported language servers
   - Fix: a tool call exceeding the timeout blocked the task executor indefinitely; the executor now
     recovers without user-induced cancellation
@@ -18,12 +39,16 @@ Status of the `main` branch. Changes prior to the next official version change w
   - Project activation errors are now reported to the client in Serena's system prompt, instead of failures 
     being visible only in the log. This applies both to a failed activation of an explicitly given project and to a 
     failed `--project-from-cwd` auto-detection (#1773).
-  - ProjectServer: Configure trusted hosts (local hosts only) when listening on localhost
-  - SerenaDashboardTrayManager: Configure trusted hosts (local hosts only)
   - Enclose sub-prompts in XML-like tags to make scopes explicit
   - Prompts and prompt templates:
     - Allow initial project prompts and project-specific newly activated modes to use templating
     - Support function `embed_memory` in prompt templates to inline a memory's contents
+
+* Security:
+  - ProjectServer: Configure trusted hosts (local hosts only) when listening on localhost
+  - SerenaDashboardTrayManager: Configure trusted hosts (local hosts only)
+  - Use sandboxed environment for prompt templating, preventing attackers from using custom prompts to
+    execute commands in an uncontrolled manner
 
 * CLI:
   - Fix: `start-mcp-server` help text for `--project-from-cwd` falsely promised a fallback to the CWD, which was 
@@ -45,6 +70,9 @@ Status of the `main` branch. Changes prior to the next official version change w
     - Tools that traverse a subtree of the project (`list_dir`, `find_file`, `search_for_pattern`) now all have an 
       option `skip_ignored_files` (whether to skip ignored sub-paths).
       Note that if the base path is itself ignored, ignored paths cannot be considered.
+
+* JetBrains:
+  - `jet_brains_find_symbol`: Disallow wildcard-only search, delegating to overview tool if request is for file
 
 * Language Servers: 
   - Add Gleam language server support (via the `gleam lsp` server bundled with the Gleam compiler)
@@ -93,11 +121,10 @@ Status of the `main` branch. Changes prior to the next official version change w
     `Deno.*` globals, which the plain TypeScript language server does not. Overlaps TypeScript on
     file extensions, so it is not auto-detected and must be selected explicitly; requires the
     `deno` CLI on PATH
-
-* JetBrains:
-  - `jet_brains_find_symbol`: Disallow wildcard-only search, delegating to overview tool if request is for file
-
-* Language Servers:
+  - Fix: `find_referencing_symbols` reported file-level containers for references located inside Go
+    struct bodies, interface bodies and `const` groups; improve the logic for finding the nearest
+    enclosing symbol, adding the helper function `SymbolKind.is_container` (which is now also
+    applied to identify high-level symbols that should appear in symbol overiews).
   - Rust: reduce rust-analyzer memory usage and reload churn by disabling cache priming and Cargo autoreload while preserving diagnostics.
   - `typescript`: Fix: on large projects, the first `find_referencing_symbols`/`request_references` call
     could silently race tsserver's project load and return incomplete results, because the fixed 2s
