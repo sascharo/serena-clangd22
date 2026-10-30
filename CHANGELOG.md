@@ -7,12 +7,17 @@ Status of the `main` branch. Changes prior to the next official version change w
     - Allow tool exclusions/inclusions to use tool marker names (e.g. `ToolMarkerCanEdit`)
     - Allow API exclusions to include `marker:editing` to exclude all editing functionality
   - Fix: `planning` mode now correctly excludes all editing tools/functions (#2210)
+  - Fix: project-level `ls_specific_settings` replaced the global settings for the same language server
+    silently. Since the replacement is per language rather than per key, a project block that only set
+    `ls_path`, for example, dropped every global key such as `ls_extra_args`, leaving no trace. The
+    replacement behaviour is unchanged, but the global keys hidden by a project block are now logged (#2188).
 
 * JetBrains:
   - Fix: When applying a non-symbolic edit, do not raise a post-edit exception during IDE file refresh
     if the IDE's plugin server is not reachable.
 
 * Language Servers:
+  - Fix: detect Elixir installed via a Windows batch launcher
   - Extend allowed types in persisted symbol caches, fixing cache loading issues with `clangd`
     when overriding values like `ls_path`, `clangd_version` or `compile_commands_dir`
   - Add GraphQL language server support (experimental) via `graphql-language-service-cli` (`graphql-lsp`) for
