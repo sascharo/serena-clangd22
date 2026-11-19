@@ -3,14 +3,25 @@
 Status of the `main` branch. Changes prior to the next official version change will appear here.
 
 * General:
+  - Fix: project activation commands could hang on Windows when Serena uses the stdio transport (#2270)
   - More flexible inclusion/exclusion definitions: 
     - Allow tool exclusions/inclusions to use tool marker names (e.g. `ToolMarkerCanEdit`)
     - Allow API exclusions to include `marker:editing` to exclude all editing functionality
+  - Add new modes `ext-full` and `ext-readonly` to conveniently enable external project access when using
+    the REPL interface.
   - Fix: `planning` mode now correctly excludes all editing tools/functions (#2210)
+  - Fix: `read_file`, `search_for_pattern` and `replace_in_files` failed with a `UnicodeDecodeError` on a
+    project file whose encoding differs from the project's configured `encoding` (e.g. a UTF-16 file saved
+    by Notepad or PowerShell, or a latin-1 export), although Serena documents a fallback to detected
+    encoding for such files. These tools now use the documented read path, so the file is read instead of
+    rejected (#2274)
   - Fix: project-level `ls_specific_settings` replaced the global settings for the same language server
     silently. Since the replacement is per language rather than per key, a project block that only set
     `ls_path`, for example, dropped every global key such as `ls_extra_args`, leaving no trace. The
     replacement behaviour is unchanged, but the global keys hidden by a project block are now logged (#2188).
+  - Fix: on macOS, cleaning up a language server that had already exited logged a spurious
+    "Permission denied signaling process group" warning; an exited process group is now treated
+    as already clean (#2237)
   - Performance: the symbol caches were rewritten in full after every tool call that fetched new symbols,
     which takes noticeable time for large projects; they are now saved at most every 30 s, and always when
     language servers are stopped or restarted
@@ -20,7 +31,11 @@ Status of the `main` branch. Changes prior to the next official version change w
     if the IDE's plugin server is not reachable.
 
 * Language Servers:
+  - Fix: `find_implementations` can now find TypeScript interface implementations in Vue projects (#2218)
   - Fix: detect Elixir installed via a Windows batch launcher
+  - Fix: a language server process that exited while its child processes kept running (e.g. after being
+    killed) was still considered running, so it was not restarted and the next request hung until the
+    tool timeout
   - Extend allowed types in persisted symbol caches, fixing cache loading issues with `clangd`
     when overriding values like `ls_path`, `clangd_version` or `compile_commands_dir`
   - Add GraphQL language server support (experimental) via `graphql-language-service-cli` (`graphql-lsp`) for
@@ -46,6 +61,7 @@ Status of the `main` branch. Changes prior to the next official version change w
 * Dashboard:
   - Fix: on macOS, the tray icon stayed white on a light menu bar instead of adapting to the menu bar's
     appearance like other menu bar icons (#2263)
+  - Fix: on macOS, the tray icon was blurry on Retina displays
 
 # v2.1.0 (2026-10-19)
 
